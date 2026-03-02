@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DataExploration
+import androidx.compose.material.icons.filled.EnhancedEncryption
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material3.Icon
@@ -21,6 +22,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.bbm.multitask.ui.l3ib.L3ib
 import com.bbm.multitask.ui.lPGraphicalMethod.LPGraphicalMethod
 import com.bbm.multitask.ui.main.MainScreen
 import kotlinx.serialization.Serializable
@@ -34,9 +36,13 @@ object MainScr
 @Serializable
 object LPGraphicalMethod
 
+@Serializable
+object L3ibMethod
+
 sealed class TopLevelRoute<T : Any>(val name: String, val route: T, val icon: ImageVector) {
     object MainScreen : TopLevelRoute<MainScr>("Головна", MainScr, icon = Icons.Default.SelectAll)
     object LsbMethodScreen : TopLevelRoute<LsbMethod>("Метод LSB", LsbMethod, icon = Icons.Default.DataExploration)
+    object L3ibScreen : TopLevelRoute<L3ibMethod>("Методи шифрування", L3ibMethod, icon = Icons.Default.EnhancedEncryption)
     object LPGraphicalMethodScreen :
         TopLevelRoute<LPGraphicalMethod>("Графічний метод", LPGraphicalMethod, icon = Icons.Default.GraphicEq)
 }
@@ -45,6 +51,7 @@ val navItems = listOf(
     TopLevelRoute.MainScreen,
     TopLevelRoute.LsbMethodScreen,
     TopLevelRoute.LPGraphicalMethodScreen,
+    TopLevelRoute.L3ibScreen,
 )
 
 @Composable
@@ -79,6 +86,7 @@ fun AppNavigation(desktopExtras: @Composable () -> Unit = {}) {
                 composable<MainScr> { MainScreen() }
                 composable<LsbMethod> { desktopExtras() }
                 composable<LPGraphicalMethod> { LPGraphicalMethod() }
+                composable<L3ibMethod> { L3ib() }
             }
         }
     }

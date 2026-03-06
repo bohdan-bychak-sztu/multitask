@@ -1,7 +1,7 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
-    plugins {
+plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
@@ -41,6 +41,14 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
 
             implementation("org.jetbrains.androidx.navigation:navigation-compose:2.9.1")
+            implementation("com.drewnoakes:metadata-extractor:2.19.0")
+
+            var filekit_version = "0.13.0"
+            implementation("io.github.vinceglb:filekit-core:$filekit_version")
+            implementation("io.github.vinceglb:filekit-dialogs:$filekit_version")
+            implementation("io.github.vinceglb:filekit-dialogs-compose:$filekit_version")
+            implementation("io.github.vinceglb:filekit-coil:$filekit_version")
+
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

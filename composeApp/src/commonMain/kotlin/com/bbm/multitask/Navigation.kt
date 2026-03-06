@@ -1,22 +1,18 @@
 package com.bbm.multitask
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DataExploration
-import androidx.compose.material.icons.filled.EnhancedEncryption
-import androidx.compose.material.icons.filled.GraphicEq
-import androidx.compose.material.icons.filled.SelectAll
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -39,16 +35,44 @@ object LPGraphicalMethod
 @Serializable
 object L3ibMethod
 
-sealed class TopLevelRoute<T : Any>(val name: String, val route: T, val icon: ImageVector) {
-    object MainScreen : TopLevelRoute<MainScr>("Головна", MainScr, icon = Icons.Default.SelectAll)
-    object LsbMethodScreen : TopLevelRoute<LsbMethod>("Метод LSB", LsbMethod, icon = Icons.Default.DataExploration)
-    object L3ibScreen : TopLevelRoute<L3ibMethod>("Методи шифрування", L3ibMethod, icon = Icons.Default.EnhancedEncryption)
+sealed class TopLevelRoute<T : Any>(
+    val name: String,
+    val route: T,
+    val icon: ImageVector,
+    val contentDescription: String = ""
+) {
+    object MainScreen : TopLevelRoute<MainScr>(
+        "Головна",
+        MainScr,
+        icon = Icons.Default.SelectAll,
+        contentDescription = "Головна сторінка"
+    )
+
+    object LsbMethodScreen : TopLevelRoute<LsbMethod>(
+        "Метод LSB",
+        LsbMethod,
+        icon = Icons.Default.ImageAspectRatio,
+        contentDescription = "Метод LSB для шифрування зображень"
+    )
+
+    object L3ibScreen :
+        TopLevelRoute<L3ibMethod>(
+            "Методи шифрування",
+            L3ibMethod,
+            icon = Icons.Default.EnhancedEncryption,
+            contentDescription = "Методи шифрування: заміна, перестановка, гамування"
+        )
+
     object LPGraphicalMethodScreen :
-        TopLevelRoute<LPGraphicalMethod>("Графічний метод", LPGraphicalMethod, icon = Icons.Default.GraphicEq)
+        TopLevelRoute<LPGraphicalMethod>(
+            "Графічний метод",
+            LPGraphicalMethod,
+            icon = Icons.Default.GraphicEq,
+            contentDescription = "Графічний метод розв'язання задач лінійного програмування"
+        )
 }
 
 val navItems = listOf(
-    TopLevelRoute.MainScreen,
     TopLevelRoute.LsbMethodScreen,
     TopLevelRoute.LPGraphicalMethodScreen,
     TopLevelRoute.L3ibScreen,
@@ -61,13 +85,14 @@ fun AppNavigation(desktopExtras: @Composable () -> Unit = {}) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination
 
-    Row(modifier = Modifier.fillMaxSize()) {
-        NavigationRail(
+    Column(modifier = Modifier.fillMaxSize()) {
+        /*NavigationRail(
             /*header = {
                 FloatingActionButton(onClick = { /* ... */ }) {
                     Icon(Icons.Default.Add, contentDescription = null)
                 }
             }*/
+            windowInsets = WindowInsets.statusBars
         ) {
             navItems.forEach { item ->
                 val isSelected = currentRoute?.hierarchy?.any { it.hasRoute(item.route::class) } == true
@@ -79,14 +104,68 @@ fun AppNavigation(desktopExtras: @Composable () -> Unit = {}) {
                     label = { Text(item.name) }
                 )
             }
-        }
+        }*/
+
+        TopBar(navController)
 
         Box(modifier = Modifier.weight(1f)) {
             NavHost(navController, startDestination = MainScr) {
-                composable<MainScr> { MainScreen() }
+                composable<MainScr> { MainScreen(navItems, navController) }
                 composable<LsbMethod> { desktopExtras() }
                 composable<LPGraphicalMethod> { LPGraphicalMethod() }
                 composable<L3ibMethod> { L3ib() }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun TopBar(navController: NavController) {
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+
+    val currentRouteName = navItems.find { item ->
+        currentDestination?.hierarchy?.any { it.route == item.route::class.qualifiedName } == true
+    }?.name ?: TopLevelRoute.MainScreen.name
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .background(Color(0xFF212121)),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 12.dp)) {
+            Icon(
+                Icons.Default.TaskAlt,
+                contentDescription = "Logo",
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("MultiTask", color = Color.White, style = MaterialTheme.typography.titleSmallEmphasized)
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                currentRouteName,
+                color = Color.LightGray,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = {
+                navController.navigate(MainScr)
+            }) {
+                Icon(
+                    Icons.Default.Home,
+                    contentDescription = "Home",
+                    tint = Color.LightGray,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }

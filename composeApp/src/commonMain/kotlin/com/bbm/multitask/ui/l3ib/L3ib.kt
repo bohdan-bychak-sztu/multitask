@@ -21,14 +21,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 private object L3ibDefaults {
-
     val LANGUAGES = listOf("Ukrainian", "English")
 
     val METHODS = listOf("Simple substitution cipher", "Transposition cipher", "Gamma cipher")
-
     val ACTIONS = listOf("Encrypt", "Decrypt")
     val FORMULAS = listOf("S = Г + О", "S = Г - О", "S = О - Г")
-
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,13 +36,7 @@ fun L3ib(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Cipher Tool", style = MaterialTheme.typography.titleLarge) }
-            )
-        }
-    ) { paddingValues ->
+    Scaffold { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()

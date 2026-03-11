@@ -8,7 +8,6 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CopyAll
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Password
-import androidx.compose.material.icons.filled.WifiPassword
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +23,9 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bbm.multitask.ui.components.SectionTitle
+import com.bbm.multitask.ui.components.SegmentedControlSelector
+import com.bbm.multitask.ui.components.SelectorItem
 import com.bbm.multitask.ui.components.fadingEdge
 import com.drew.imaging.ImageMetadataReader
 import com.drew.metadata.png.PngDirectory
@@ -300,62 +302,6 @@ private fun SettingsSection(state: LsbMethodState, viewModel: LsbMethodViewModel
                 leadingIcon = { Icon(Icons.Default.Password, contentDescription = null) }
             )
 
-        }
-    }
-}
-
-
-@Composable
-private fun SelectorItem(label: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-        content()
-    }
-}
-
-@Composable
-private fun SectionTitle(title: String, isCollapse: Boolean = true, content: @Composable () -> Unit) {
-    var isExpanded by remember { mutableStateOf(true) }
-
-    Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-        IconButton(onClick = {
-            isExpanded = !isExpanded
-        }) {
-            Icon(Icons.Default.ArrowDropDown, contentDescription = "Hide")
-        }
-    }
-
-    if (isExpanded)
-        content()
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SegmentedControlSelector(
-    options: List<String>,
-    selectedIndex: Int,
-    onOptionSelected: (Int) -> Unit
-) {
-    SingleChoiceSegmentedButtonRow(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        options.forEachIndexed { index, label ->
-            SegmentedButton(
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                onClick = { onOptionSelected(index) },
-                selected = index == selectedIndex
-            ) {
-                Text(label, style = MaterialTheme.typography.bodySmall)
-            }
         }
     }
 }

@@ -18,6 +18,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.bbm.multitask.ui.PvdMethod.PvdMethod
 import com.bbm.multitask.ui.l3ib.L3ib
 import com.bbm.multitask.ui.lPGraphicalMethod.LPGraphicalMethod
 import com.bbm.multitask.ui.main.MainScreen
@@ -34,6 +35,9 @@ object LPGraphicalMethod
 
 @Serializable
 object L3ibMethod
+
+@Serializable
+object PvdMethod
 
 sealed class TopLevelRoute<T : Any>(
     val name: String,
@@ -70,9 +74,18 @@ sealed class TopLevelRoute<T : Any>(
             icon = Icons.Default.GraphicEq,
             contentDescription = "Графічний метод розв'язання задач лінійного програмування"
         )
+
+    object PvdMethodScreen :
+        TopLevelRoute<PvdMethod>(
+            "Метод PVD",
+            PvdMethod,
+            icon = Icons.Default.HideImage,
+            contentDescription = "Метод PVD для шифрування зображень"
+        )
 }
 
 val navItems = listOf(
+    TopLevelRoute.PvdMethodScreen,
     TopLevelRoute.LsbMethodScreen,
     TopLevelRoute.LPGraphicalMethodScreen,
     TopLevelRoute.L3ibScreen,
@@ -114,6 +127,7 @@ fun AppNavigation(desktopExtras: @Composable () -> Unit = {}) {
                 composable<LsbMethod> { desktopExtras() }
                 composable<LPGraphicalMethod> { LPGraphicalMethod() }
                 composable<L3ibMethod> { L3ib() }
+                composable<PvdMethod> { PvdMethod() }
             }
         }
     }

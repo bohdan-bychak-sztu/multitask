@@ -2,6 +2,7 @@ package com.bbm.multitask.ui.pvdMethod
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bbm.multitask.utils.platformImage.ColorChannel
 import com.bbm.multitask.utils.platformImage.PlatformImage
 import com.bbm.multitask.utils.platformImage.PvdProcessor
 import com.bbm.multitask.utils.platformImage.loadPlatformImage
@@ -23,6 +24,7 @@ data class PvdMethodState(
     val text: String = "",
     val outputPath: String? = null,
     val outputImage: PlatformImage? = null,
+    val selectedColorChannels: Set<Int> = setOf(),
 )
 
 sealed interface PvdMethodEvent {
@@ -31,6 +33,7 @@ sealed interface PvdMethodEvent {
     data class UpdateAction(val action: String) : PvdMethodEvent
     data class UpdateOutputPath(val path: String?) : PvdMethodEvent
     data class UpdateImage(val platformFile: PlatformFile) : PvdMethodEvent
+    data class UpdateSelectedColorChannels(val channels: Set<Int>) : PvdMethodEvent
     object ProcessImage : PvdMethodEvent
 }
 
@@ -48,6 +51,10 @@ class PvdMethodViewModel : ViewModel() {
             is PvdMethodEvent.UpdateImage -> {
                 _uiState.update { it.copy(image = event.platformFile)
                 }
+            }
+
+            is PvdMethodEvent.UpdateSelectedColorChannels -> {
+                _uiState.update { it.copy(selectedColorChannels = event.channels) }
             }
 
             is PvdMethodEvent.UpdateAction -> {
@@ -73,16 +80,19 @@ class PvdMethodViewModel : ViewModel() {
                     viewModelScope.launch {
                         try {
                             _uiState.update { it.copy(result = "Processing...") }
+                            val selectedColorChannels = currentState.selectedColorChannels
+                                .sorted()
+                                .map { ColorChannel.entries[it] }
 
                             withContext(Dispatchers.Default) {
                                 val image = loadPlatformImage(imageFile)
                                 val pvdProcessor = PvdProcessor(image)
 
                                 if (action == "Encrypt") {
-                                    pvdProcessor.embedData(text.encodeToByteArray())
+                                    pvdProcessor.embedData(text.encodeToByteArray(), selectedColorChannels)
                                     _uiState.update { it.copy(outputImage = pvdProcessor.image, result = "") }
                                 } else if (action == "Decrypt") {
-                                    val extractedData = pvdProcessor.extractData()
+                                    val extractedData = pvdProcessor.extractData(selectedColorChannels)
                                     val extractedText = extractedData.decodeToString()
                                     _uiState.update { it.copy(result = extractedText) }
                                 }

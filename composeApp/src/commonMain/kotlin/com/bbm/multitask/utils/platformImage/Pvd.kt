@@ -2,13 +2,16 @@ package com.bbm.multitask.utils.platformImage
 
 import kotlin.math.*
 
-class PvdProcessor(val image: PlatformImage) {
+enum class ColorChannel(val shift: Int) {
+    ALPHA(24), RED(16), GREEN(8), BLUE(0)
+}
 
+class PvdProcessor(val image: PlatformImage) {
     private val ranges = listOf(
         0..7, 8..15, 16..31, 32..63, 64..127, 128..255
     )
 
-    fun embedData(dataToHide: ByteArray) {
+    fun embedData(dataToHide: ByteArray, channels: List<ColorChannel> = listOf(ColorChannel.BLUE)) {
         val headerBits = StegoHeader(length = dataToHide.size).toBitArray()
         val dataIterator = BitIterator(dataToHide)
         var headerCursor = 0
@@ -16,96 +19,114 @@ class PvdProcessor(val image: PlatformImage) {
 
         for (y in 0 until image.height) {
             for (x in 0 until image.width - 1 step 2) {
-                if (headerCursor >= totalHeaderBits && !dataIterator.hasNext(1)) return
 
-                val p1 = image.getPixel(x, y) and 0xFF
-                val p2 = image.getPixel(x + 1, y) and 0xFF
-                val d = abs(p1 - p2)
+                for (channel in channels) {
+                    if (headerCursor >= totalHeaderBits && !dataIterator.hasNext(1)) return
 
-                val range = ranges.first { d in it }
-                val n = floor(log2((range.last - range.first + 1).toDouble())).toInt()
+                    val p1Full = image.getPixel(x, y)
+                    val p2Full = image.getPixel(x + 1, y)
 
-                if (!isUsable(p1, p2, n, range)) continue
+                    val p1 = (p1Full shr channel.shift) and 0xFF
+                    val p2 = (p2Full shr channel.shift) and 0xFF
 
-                var bitsToEmbed = 0
-                var bitsProcessedInThisStep = 0
+                    val d = abs(p1 - p2)
+                    val range = ranges.firstOrNull { d in it } ?: continue
+                    val n = floor(log2((range.last - range.first + 1).toDouble())).toInt()
 
-                while (bitsProcessedInThisStep < n) {
-                    val spaceLeft = n - bitsProcessedInThisStep
-                    if (headerCursor < totalHeaderBits) {
-                        val take = minOf(spaceLeft, totalHeaderBits - headerCursor)
-                        val chunk = extractBitsFromHeader(headerBits, headerCursor, take)
-                        bitsToEmbed = (bitsToEmbed shl take) or chunk
-                        headerCursor += take
-                        bitsProcessedInThisStep += take
-                    } else if (dataIterator.hasNext(1)) {
-                        val take = spaceLeft // Беремо все, що залишилося в n
-                        val chunk = dataIterator.getNextBits(take)
-                        bitsToEmbed = (bitsToEmbed shl take) or chunk
-                        bitsProcessedInThisStep += take
-                    } else {
-                        bitsToEmbed = bitsToEmbed shl spaceLeft
-                        bitsProcessedInThisStep += spaceLeft
+                    if (!isUsable(p1, p2, n, range)) continue
+
+                    var bitsToEmbed = 0
+                    var bitsProcessedInThisStep = 0
+                    while (bitsProcessedInThisStep < n) {
+                        val spaceLeft = n - bitsProcessedInThisStep
+                        if (headerCursor < totalHeaderBits) {
+                            val take = minOf(spaceLeft, totalHeaderBits - headerCursor)
+                            val chunk = extractBitsFromHeader(headerBits, headerCursor, take)
+                            bitsToEmbed = (bitsToEmbed shl take) or chunk
+                            headerCursor += take
+                            bitsProcessedInThisStep += take
+                        } else if (dataIterator.hasNext(1)) {
+                            val take = minOf(spaceLeft, dataIterator.remainingBits)
+                            val chunk = dataIterator.getNextBits(take)
+                            bitsToEmbed = (bitsToEmbed shl take) or chunk
+                            bitsProcessedInThisStep += take
+                        } else {
+                            bitsToEmbed = bitsToEmbed shl spaceLeft
+                            bitsProcessedInThisStep += spaceLeft
+                        }
                     }
+
+                    val dPrime = range.first + bitsToEmbed
+                    val m = dPrime - d
+                    val (p1New, p2New) = adjustPixels(p1, p2, m)
+
+                    image.setPixel(x, y, updateChannel(p1Full, channel.shift, p1New))
+                    image.setPixel(x + 1, y, updateChannel(p2Full, channel.shift, p2New))
                 }
-
-                val dPrime = range.first + bitsToEmbed
-                val m = dPrime - d
-                val (p1New, p2New) = adjustPixels(p1, p2, m)
-
-                image.setPixel(x, y, (image.getPixel(x, y) and -0x100) or (p1New and 0xFF))
-                image.setPixel(x + 1, y, (image.getPixel(x + 1, y) and -0x100) or (p2New and 0xFF))
             }
         }
     }
 
-    fun extractData(): ByteArray {
+    fun extractData(channels: List<ColorChannel> = listOf(ColorChannel.BLUE)): ByteArray {
         val headerBitsCollector = mutableListOf<Int>()
-        var dataCollector = BitCollector()
+        val dataCollector = BitCollector()
         var header: StegoHeader? = null
 
         for (y in 0 until image.height) {
             for (x in 0 until image.width - 1 step 2) {
-                val p1 = image.getPixel(x, y) and 0xFF
-                val p2 = image.getPixel(x + 1, y) and 0xFF
-                val dPrime = abs(p1 - p2)
+                for (channel in channels) {
+                    val p1Full = image.getPixel(x, y)
+                    val p2Full = image.getPixel(x + 1, y)
 
-                val range = ranges.find { dPrime in it } ?: continue
-                val n = floor(log2((range.last - range.first + 1).toDouble())).toInt()
-                if (!isUsable(p1, p2, n, range)) continue
+                    val p1 = (p1Full shr channel.shift) and 0xFF
+                    val p2 = (p2Full shr channel.shift) and 0xFF
 
-                var extractedBits = dPrime - range.first
-                var bitsInPixel = n
+                    val dPrime = abs(p1 - p2)
+                    val range = ranges.find { dPrime in it } ?: continue
+                    val n = floor(log2((range.last - range.first + 1).toDouble())).toInt()
 
-                while (bitsInPixel > 0) {
-                    if (header == null) {
-                        val neededForHeader = StegoHeader.HEADER_BITS_SIZE - headerBitsCollector.size
-                        val take = minOf(bitsInPixel, neededForHeader)
+                    if (!isUsable(p1, p2, n, range)) continue
 
-                        val shift = bitsInPixel - take
-                        val chunk = (extractedBits shr shift) and ((1 shl take) - 1)
+                    var extractedValue = dPrime - range.first
+                    var bitsRemainingInPixel = n
 
-                        for (i in (take - 1) downTo 0) {
-                            headerBitsCollector.add((chunk shr i) and 1)
+                    while (bitsRemainingInPixel > 0) {
+                        if (header == null) {
+                            val neededForHeader = StegoHeader.HEADER_BITS_SIZE - headerBitsCollector.size
+                            val take = minOf(bitsRemainingInPixel, neededForHeader)
+
+                            val shift = bitsRemainingInPixel - take
+                            val chunk = (extractedValue shr shift) and ((1 shl take) - 1)
+
+                            for (i in (take - 1) downTo 0) {
+                                headerBitsCollector.add((chunk shr i) and 1)
+                            }
+
+                            if (headerBitsCollector.size >= StegoHeader.HEADER_BITS_SIZE) {
+                                header = StegoHeader.parse(headerBitsCollector.toIntArray())
+                            }
+
+                            bitsRemainingInPixel -= take
+                            extractedValue = extractedValue and ((1 shl bitsRemainingInPixel) - 1)
+
+                        } else {
+                            dataCollector.addBits(extractedValue, bitsRemainingInPixel)
+
+                            if (dataCollector.sizeInBytes >= header.length) {
+                                return dataCollector.toByteArray().sliceArray(0 until header.length)
+                            }
+                            bitsRemainingInPixel = 0
                         }
-
-                        if (headerBitsCollector.size >= StegoHeader.HEADER_BITS_SIZE) {
-                            header = StegoHeader.parse(headerBitsCollector.toIntArray())
-                        }
-
-                        bitsInPixel -= take
-                        extractedBits = extractedBits and ((1 shl bitsInPixel) - 1)
-                    } else {
-                        dataCollector.addBits(extractedBits, bitsInPixel)
-                        if (dataCollector.sizeInBytes >= header.length) {
-                            return dataCollector.toByteArray().sliceArray(0 until header.length)
-                        }
-                        bitsInPixel = 0
                     }
                 }
             }
         }
         return dataCollector.toByteArray()
+    }
+
+    private fun updateChannel(pixel: Int, shift: Int, newValue: Int): Int {
+        val mask = (0xFF shl shift).inv()
+        return (pixel and mask) or ((newValue and 0xFF) shl shift)
     }
 
     private fun adjustPixels(p1: Int, p2: Int, m: Int): Pair<Int, Int> {

@@ -161,6 +161,62 @@ class PvdProcessor(val image: PlatformImage) {
         return res
     }
 
+    fun calculatePvdForPair(p1: Int, p2: Int, charToEmbed: Char): String {
+        val d = abs(p1 - p2)
+        val range = ranges.firstOrNull { d in it }
+            ?: return "Error: Could not find a suitable range for difference d=$d."
+
+        val n = floor(log2((range.last - range.first + 1).toDouble())).toInt()
+
+        if (n == 0) {
+            return "Cannot embed any bits. This pixel pair can hide 0 bits."
+        }
+
+        val bitsToHide = minOf(n, 8)
+
+        if (!isUsable(p1, p2, bitsToHide, range)) {
+            return "This pixel pair is not usable. Embedding would cause overflow/underflow."
+        }
+
+        val charCode = charToEmbed.code
+        val bitsToEmbed = charCode shr (8 - bitsToHide)
+        val dPrime = range.first + bitsToEmbed
+        val m = dPrime - d
+        println("Original pixels: P1=$p1, P2=$p2\n" +
+                "Difference d=$d falls in range ${range.first}..${range.last}, allowing n=$n bits.\n" +
+                "Embedding character '${charToEmbed}' (code $charCode) requires hiding $bitsToHide bits.\n" +
+                "Calculated d'=$dPrime, m=$m.")
+        val (p1New, p2New) = adjustPixels(p1, p2, m)
+        println("Adjusted pixels: P1'=$p1New, P2'=$p2New")
+
+        val charBinary = charCode.toString(2).padStart(8, '0')
+        val hiddenBits = charBinary.substring(0, bitsToHide)
+        val remainingBits = charBinary.substring(bitsToHide)
+        val binaryString = "Binary: `$hiddenBits`$remainingBits"
+
+        return "New pixels: P1'=$p1New, P2'=$p2New\n" +
+                "Embedded $bitsToHide of 8 bits.\n" +
+                binaryString
+    }
+
+    fun extractPvdForPair(p1: Int, p2: Int): String {
+        val dPrime = abs(p1 - p2)
+        val range = ranges.firstOrNull { dPrime in it }
+            ?: return "Error: Could not find a suitable range for difference d'=$dPrime."
+
+        val n = floor(log2((range.last - range.first + 1).toDouble())).toInt()
+
+        if (n == 0) {
+            return "No bits are hidden in this pixel pair."
+        }
+
+        val extractedValue = dPrime - range.first
+        val binaryString = extractedValue.toString(2).padStart(n, '0')
+
+        return "Extracted bits: $binaryString\n" +
+                "Value: $extractedValue ($n bits)"
+    }
+
     fun isUsable(p1: Int, p2: Int, bitsToHide: Int, range: IntRange): Boolean {
         val dMax = range.last
         val d = abs(p1 - p2)

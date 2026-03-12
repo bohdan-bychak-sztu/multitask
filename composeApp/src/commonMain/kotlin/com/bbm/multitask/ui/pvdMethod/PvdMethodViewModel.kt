@@ -1,5 +1,6 @@
 package com.bbm.multitask.ui.pvdMethod
 
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bbm.multitask.utils.platformImage.ColorChannel
@@ -25,6 +26,11 @@ data class PvdMethodState(
     val outputPath: String? = null,
     val outputImage: PlatformImage? = null,
     val selectedColorChannels: Set<Int> = setOf(),
+
+    val p1: String = "",
+    val p2: String = "",
+    val charToEmbed: String = "",
+    val pvdCalcResult: String = ""
 )
 
 sealed interface PvdMethodEvent {
@@ -35,6 +41,8 @@ sealed interface PvdMethodEvent {
     data class UpdateImage(val platformFile: PlatformFile) : PvdMethodEvent
     data class UpdateSelectedColorChannels(val channels: Set<Int>) : PvdMethodEvent
     object ProcessImage : PvdMethodEvent
+    data class CalculatePvd(val p1: String, val p2: String, val char: String) : PvdMethodEvent
+    data class ExtractPvd(val p1: String, val p2: String) : PvdMethodEvent
 }
 
 class PvdMethodViewModel : ViewModel() {
@@ -67,6 +75,71 @@ class PvdMethodViewModel : ViewModel() {
 
             is PvdMethodEvent.UpdateOutputPath -> {
                 _uiState.update { it.copy(outputPath = event.path) }
+            }
+
+            is PvdMethodEvent.CalculatePvd -> {
+                _uiState.update { it.copy(p1 = event.p1, p2 = event.p2, charToEmbed = event.char) }
+                viewModelScope.launch(Dispatchers.Default) {
+                    val p1Int = event.p1.ifEmpty { "0" }.toIntOrNull()
+                    val p2Int = event.p2.ifEmpty { "0" }.toIntOrNull()
+                    val char = event.char.firstOrNull()
+
+                    if (p1Int == null || p2Int == null) {
+                        _uiState.update { it.copy(pvdCalcResult = "Invalid pixel value.") }
+                        return@launch
+                    }
+                    if (char == null) {
+                        _uiState.update { it.copy(pvdCalcResult = "Please enter a character to embed.") }
+                        return@launch
+                    }
+                    if (p1Int !in 0..255 || p2Int !in 0..255) {
+                        _uiState.update { it.copy(pvdCalcResult = "Pixel values must be between 0 and 255.") }
+                        return@launch
+                    }
+
+                    val dummyImage = object : PlatformImage {
+                        override val width: Int = 0
+                        override val height: Int = 0
+                        override fun getPixel(x: Int, y: Int): Int = 0
+                        override fun setPixel(x: Int, y: Int, color: Int) {}
+                        override fun save(path: String) {}
+                        override fun getBytes(): ByteArray {return byteArrayOf()}
+                        override fun toImageBitmap(): ImageBitmap { return ImageBitmap(1, 1) }
+                    }
+                    val processor = PvdProcessor(dummyImage)
+                    val result = processor.calculatePvdForPair(p1Int, p2Int, char)
+                    _uiState.update { it.copy(pvdCalcResult = result) }
+                }
+            }
+
+            is PvdMethodEvent.ExtractPvd -> {
+                _uiState.update { it.copy(p1 = event.p1, p2 = event.p2) }
+                viewModelScope.launch(Dispatchers.Default) {
+                    val p1Int = event.p1.ifEmpty { "0" }.toIntOrNull()
+                    val p2Int = event.p2.ifEmpty { "0" }.toIntOrNull()
+
+                    if (p1Int == null || p2Int == null) {
+                        _uiState.update { it.copy(pvdCalcResult = "Invalid pixel value.") }
+                        return@launch
+                    }
+                    if (p1Int !in 0..255 || p2Int !in 0..255) {
+                        _uiState.update { it.copy(pvdCalcResult = "Pixel values must be between 0 and 255.") }
+                        return@launch
+                    }
+
+                    val dummyImage = object : PlatformImage {
+                        override val width: Int = 0
+                        override val height: Int = 0
+                        override fun getPixel(x: Int, y: Int): Int = 0
+                        override fun setPixel(x: Int, y: Int, color: Int) {}
+                        override fun save(path: String) {}
+                        override fun getBytes(): ByteArray {return byteArrayOf()}
+                        override fun toImageBitmap(): ImageBitmap { return ImageBitmap(1, 1) }
+                    }
+                    val processor = PvdProcessor(dummyImage)
+                    val result = processor.extractPvdForPair(p1Int, p2Int)
+                    _uiState.update { it.copy(pvdCalcResult = result) }
+                }
             }
 
             is PvdMethodEvent.ProcessImage -> {

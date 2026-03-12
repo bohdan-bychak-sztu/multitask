@@ -57,6 +57,29 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+
+        val webMain by creating {
+            dependsOn(commonMain.get())
+            dependencies {
+                // НЕ додавайте сюди stdlib-wasm-js!
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+            }
+        }
+
+        val jsMain by getting {
+            dependsOn(webMain)
+            dependencies {
+                implementation(kotlin("stdlib-js")) // Stdlib для JS
+            }
+        }
+
+        val wasmJsMain by getting {
+            dependsOn(webMain)
+            dependencies {
+                implementation(kotlin("stdlib-wasm-js")) // Stdlib для Wasm
+            }
+        }
+
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
@@ -65,6 +88,7 @@ kotlin {
             implementation("androidx.room:room-runtime:${room_version}")
             implementation("androidx.sqlite:sqlite-bundled:2.5.0-alpha11")
         }
+
     }
 }
 

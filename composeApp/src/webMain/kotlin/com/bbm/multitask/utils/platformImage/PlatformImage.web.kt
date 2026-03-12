@@ -1,5 +1,7 @@
 package com.bbm.multitask.utils.platformImage
 
-actual fun loadPlatformImage(path: String): PlatformImage {
+import io.github.vinceglb.filekit.PlatformFile
+
+actual suspend fun loadPlatformImage(image: PlatformFile): PlatformImage {
     TODO("Not yet implemented")
 }

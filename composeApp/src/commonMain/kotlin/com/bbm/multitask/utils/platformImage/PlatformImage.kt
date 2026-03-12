@@ -1,6 +1,7 @@
 package com.bbm.multitask.utils.platformImage
 
 import androidx.compose.ui.graphics.ImageBitmap
+import io.github.vinceglb.filekit.PlatformFile
 
 interface PlatformImage {
     val width: Int
@@ -12,4 +13,4 @@ interface PlatformImage {
     fun toImageBitmap(): ImageBitmap
 }
 
-expect fun loadPlatformImage(path: String): PlatformImage
+expect suspend fun loadPlatformImage(image: PlatformFile): PlatformImage

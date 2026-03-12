@@ -2,12 +2,15 @@ package com.bbm.multitask.utils.platformImage
 
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.readBytes
 import java.awt.image.BufferedImage
+import java.io.ByteArrayInputStream
 import java.io.File
 import javax.imageio.ImageIO
 
-actual fun loadPlatformImage(path: String): PlatformImage {
-    return JvmImage(ImageIO.read(File(path)))
+actual suspend fun loadPlatformImage(image: PlatformFile): PlatformImage {
+    return JvmImage(ImageIO.read(ByteArrayInputStream(image.readBytes())))
 }
 
 class JvmImage(private val image: BufferedImage) : PlatformImage {

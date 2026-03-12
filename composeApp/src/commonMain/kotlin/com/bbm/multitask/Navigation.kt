@@ -18,7 +18,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.bbm.multitask.ui.PvdMethod.PvdMethod
+import com.bbm.multitask.ui.pvdMethod.PvdMethod
 import com.bbm.multitask.ui.l3ib.L3ib
 import com.bbm.multitask.ui.lPGraphicalMethod.LPGraphicalMethod
 import com.bbm.multitask.ui.main.MainScreen

@@ -264,7 +264,7 @@ fun dragAndDrop(
         if (imageBitmap != null) {
             Image(
                 painter = BitmapPainter(imageBitmap),
-                contentDescription = "Dropped Image",
+                contentDescription = "Selected Image",
                 modifier = Modifier.align(Alignment.Center)
             )
         } else {

@@ -1,4 +1,4 @@
-package com.bbm.multitask.ui.PvdMethod
+package com.bbm.multitask.ui.pvdMethod
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -24,13 +24,13 @@ import com.bbm.multitask.ui.components.SectionTitle
 import com.bbm.multitask.ui.components.SegmentedControlSelector
 import com.bbm.multitask.ui.components.SelectorItem
 import com.bbm.multitask.ui.components.fadingEdge
+import com.bbm.multitask.utils.platformImage.PlatformImage
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.dialogs.compose.util.toImageBitmap
-import io.github.vinceglb.filekit.dialogs.openFilePicker
 import kotlinx.coroutines.launch
 
 
@@ -72,7 +72,6 @@ fun PvdMethod(
                     SelectImageArea(
                         image = state.image,
                         onFileSelected = { platformFile ->
-                            //viewModel.onEvent(PvdMethodEvent.UpdatePathToImage(platformFile.path))
                             viewModel.onEvent(PvdMethodEvent.UpdateImage(platformFile))
                         }
                     )
@@ -97,7 +96,7 @@ fun PvdMethod(
                         Column {
                             Button(
                                 onClick = { viewModel.onEvent(PvdMethodEvent.ProcessImage) },
-                                enabled = !state.pathToImage.isNullOrEmpty() && (state.action == "Decrypt" || state.text.isNotEmpty())
+                                enabled = state.image != null && (state.action == "Decrypt" || state.text.isNotEmpty())
                             ) {
                                 Text("Process Image")
                             }
@@ -105,26 +104,9 @@ fun PvdMethod(
                             if (state.outputImage != null)
                                 Button(
                                     onClick = {
-                                        /*scope.launch {
-                                            try {
-                                                val file =
-                                                    FileKit.openFileSaver(suggestedName = "result", extension = "png")
-                                                file?.write(state.outputImage!!.getBytes())
-                                                viewModel.onEvent(
-                                                    PvdMethodEvent.UpdateOutputPath(
-                                                        file?.absolutePath() ?: ""
-                                                    )
-                                                )
-                                                scope.launch {
-                                                    snackbarHostState.showSnackbar(
-                                                        "Image saved successfully!",
-                                                        duration = SnackbarDuration.Short
-                                                    )
-                                                }
-                                            } catch (e: Exception) {
-                                                println("Помилка збереження: ${e.message}")
-                                            }
-                                        }*/
+                                        scope.launch {
+                                            viewModel.onEvent(PvdMethodEvent.UpdateOutputPath(saveFile(state.outputImage)))
+                                        }
                                     },
                                     modifier = Modifier.padding(top = 8.dp)
                                 ) {
@@ -137,8 +119,9 @@ fun PvdMethod(
                                     .size(200.dp)
                                     .background(MaterialTheme.colorScheme.tertiaryContainer)
                                     .clickable(
-                                        enabled = state.outputPath.isNotEmpty(),
+                                        enabled = !state.outputPath.isNullOrEmpty(),
                                         onClick = {
+                                            openFileWithDefaultApplication(state.outputPath!!)
                                             //FileKit.openFileWithDefaultApplication(PlatformFile(state.outputPath))
                                         }
                                     )
@@ -419,3 +402,6 @@ private fun ResultSection(result: String, snackbarHostState: SnackbarHostState? 
             }
         }
 }
+
+expect suspend fun saveFile(file: PlatformImage? ) : String?
+expect fun openFileWithDefaultApplication(path: String)

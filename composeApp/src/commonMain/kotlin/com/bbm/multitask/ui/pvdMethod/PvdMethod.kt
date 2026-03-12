@@ -13,6 +13,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bbm.multitask.ui.components.*
@@ -54,6 +58,10 @@ fun PvdMethod(
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             SettingsSection(state, viewModel)
+
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+            PvdCalculatorSection(state, viewModel)
 
             Divider(modifier = Modifier.padding(vertical = 8.dp))
 
@@ -123,6 +131,99 @@ fun PvdMethod(
                         ResultSection(state.result, snackbarHostState)
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PvdCalculatorSection(state: PvdMethodState, viewModel: PvdMethodViewModel) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        SectionTitle(title = "PVD Calculator", isCollapse = true) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = state.p1,
+                    onValueChange = {
+                        if (it.length <= 3 && it.all { c -> c.isDigit() }) {
+                            val p1Value = it.ifEmpty { "0" }.toIntOrNull() ?: 0
+                            if (p1Value in 0..255) {
+                                viewModel.onEvent(PvdMethodEvent.CalculatePvd(it, state.p2, state.charToEmbed))
+                            }
+                        }
+                    },
+                    label = { Text("Pixel 1") },
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = state.p2,
+                    onValueChange = {
+                        if (it.length <= 3 && it.all { c -> c.isDigit() }) {
+                            val p2Value = it.ifEmpty { "0" }.toIntOrNull() ?: 0
+                            if (p2Value in 0..255) {
+                                viewModel.onEvent(PvdMethodEvent.CalculatePvd(state.p1, it, state.charToEmbed))
+                            }
+                        }
+                    },
+                    label = { Text("Pixel 2") },
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = state.charToEmbed,
+                    onValueChange = { if (it.length <= 1) viewModel.onEvent(PvdMethodEvent.CalculatePvd(state.p1, state.p2, it)) },
+                    label = { Text("Char") },
+                    modifier = Modifier.weight(0.8f)
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = { viewModel.onEvent(PvdMethodEvent.CalculatePvd(state.p1, state.p2, state.charToEmbed)) },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Embed")
+                }
+                Button(
+                    onClick = { viewModel.onEvent(PvdMethodEvent.ExtractPvd(state.p1, state.p2)) },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Extract")
+                }
+            }
+            if (state.pvdCalcResult.isNotEmpty()) {
+                val isError = state.pvdCalcResult.startsWith("Error") || state.pvdCalcResult.startsWith("Cannot")
+                val textColor = if (isError) MaterialTheme.colorScheme.error else LocalContentColor.current
+
+                val annotatedString = buildAnnotatedString {
+                    val binaryLineMatch = "Binary: `(.*?)`(.*)".toRegex().find(state.pvdCalcResult)
+                    if (binaryLineMatch != null) {
+                        val fullText = binaryLineMatch.value
+                        val prefix = state.pvdCalcResult.substringBefore(fullText)
+                        append(prefix)
+
+                        val (hiddenPart, remainingPart) = binaryLineMatch.destructured
+                        append("Binary: ")
+                        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)) {
+                            append(hiddenPart)
+                        }
+                        append(remainingPart)
+                    } else {
+                        append(state.pvdCalcResult)
+                    }
+                }
+
+                Text(
+                    text = annotatedString,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = textColor,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
             }
         }
     }

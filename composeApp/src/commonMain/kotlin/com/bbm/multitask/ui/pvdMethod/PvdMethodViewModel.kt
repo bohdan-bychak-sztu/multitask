@@ -20,12 +20,12 @@ import kotlinx.coroutines.withContext
 data class PvdMethodState(
     val pathToImage: String? = null,
     val image: PlatformFile? = null,
-    val action: String = "Encrypt",
+    val action: String = "Embed",
     val result: String = "",
     val text: String = "",
     val outputPath: String? = null,
     val outputImage: PlatformImage? = null,
-    val selectedColorChannels: Set<Int> = setOf(),
+    val selectedColorChannels: Set<Int> = setOf(1, 2, 3),
 
     val p1: String = "",
     val p2: String = "",
@@ -52,12 +52,14 @@ class PvdMethodViewModel : ViewModel() {
     fun onEvent(event: PvdMethodEvent) {
         when (event) {
             is PvdMethodEvent.UpdatePathToImage -> {
-                _uiState.update { it.copy(pathToImage = event.path, outputImage = null, result = "", outputPath = "")
+                _uiState.update {
+                    it.copy(pathToImage = event.path, outputImage = null, result = "", outputPath = "")
                 }
             }
 
             is PvdMethodEvent.UpdateImage -> {
-                _uiState.update { it.copy(image = event.platformFile)
+                _uiState.update {
+                    it.copy(image = event.platformFile)
                 }
             }
 
@@ -103,8 +105,13 @@ class PvdMethodViewModel : ViewModel() {
                         override fun getPixel(x: Int, y: Int): Int = 0
                         override fun setPixel(x: Int, y: Int, color: Int) {}
                         override fun save(path: String) {}
-                        override fun getBytes(): ByteArray {return byteArrayOf()}
-                        override fun toImageBitmap(): ImageBitmap { return ImageBitmap(1, 1) }
+                        override fun getBytes(): ByteArray {
+                            return byteArrayOf()
+                        }
+
+                        override fun toImageBitmap(): ImageBitmap {
+                            return ImageBitmap(1, 1)
+                        }
                     }
                     val processor = PvdProcessor(dummyImage)
                     val result = processor.calculatePvdForPair(p1Int, p2Int, char)
@@ -133,8 +140,13 @@ class PvdMethodViewModel : ViewModel() {
                         override fun getPixel(x: Int, y: Int): Int = 0
                         override fun setPixel(x: Int, y: Int, color: Int) {}
                         override fun save(path: String) {}
-                        override fun getBytes(): ByteArray {return byteArrayOf()}
-                        override fun toImageBitmap(): ImageBitmap { return ImageBitmap(1, 1) }
+                        override fun getBytes(): ByteArray {
+                            return byteArrayOf()
+                        }
+
+                        override fun toImageBitmap(): ImageBitmap {
+                            return ImageBitmap(1, 1)
+                        }
                     }
                     val processor = PvdProcessor(dummyImage)
                     val result = processor.extractPvdForPair(p1Int, p2Int)
@@ -149,7 +161,7 @@ class PvdMethodViewModel : ViewModel() {
                 val action = currentState.action
                 val outputPath = currentState.outputPath
 
-                if (imageFile != null && (text.isNotEmpty() || action == "Decrypt")) {
+                if (imageFile != null && (text.isNotEmpty() || action == "Extract")) {
                     viewModelScope.launch {
                         try {
                             _uiState.update { it.copy(result = "Processing...") }
@@ -161,10 +173,10 @@ class PvdMethodViewModel : ViewModel() {
                                 val image = loadPlatformImage(imageFile)
                                 val pvdProcessor = PvdProcessor(image)
 
-                                if (action == "Encrypt") {
+                                if (action == "Embed") {
                                     pvdProcessor.embedData(text.encodeToByteArray(), selectedColorChannels)
                                     _uiState.update { it.copy(outputImage = pvdProcessor.image, result = "") }
-                                } else if (action == "Decrypt") {
+                                } else if (action == "Extract") {
                                     val extractedData = pvdProcessor.extractData(selectedColorChannels)
                                     val extractedText = extractedData.decodeToString()
                                     _uiState.update { it.copy(result = extractedText) }

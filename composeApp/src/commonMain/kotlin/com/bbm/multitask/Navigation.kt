@@ -56,7 +56,7 @@ sealed class TopLevelRoute<T : Any>(
         "Метод LSB",
         LsbMethod,
         icon = Icons.Default.ImageAspectRatio,
-        contentDescription = "Метод LSB для шифрування зображень"
+        contentDescription = "Метод LSB для приховування даних в зображеннях"
     )
 
     object L3ibScreen :
@@ -80,7 +80,7 @@ sealed class TopLevelRoute<T : Any>(
             "Метод PVD",
             PvdMethod,
             icon = Icons.Default.HideImage,
-            contentDescription = "Метод PVD для шифрування зображень"
+            contentDescription = "Метод PVD для приховування даних в зображеннях"
         )
 }
 

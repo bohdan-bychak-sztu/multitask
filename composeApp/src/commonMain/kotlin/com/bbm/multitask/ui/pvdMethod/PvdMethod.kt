@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
 
 
 private object PvdMethodDefaults {
-    val ACTIONS = listOf("Encrypt", "Decrypt")
+    val ACTIONS = listOf("Embed", "Extract")
     val COLORS_TO_USE = ColorChannel.entries.map { it.name }
 }
 
@@ -65,7 +65,7 @@ fun PvdMethod(
 
             Divider(modifier = Modifier.padding(vertical = 8.dp))
 
-            if (state.action == "Encrypt")
+            if (state.action == "Embed")
                 InputSection(state, viewModel)
 
             Row {
@@ -90,12 +90,12 @@ fun PvdMethod(
                         Column {
                             Button(
                                 onClick = { viewModel.onEvent(PvdMethodEvent.ProcessImage) },
-                                enabled = state.image != null && (state.action == "Decrypt" || state.text.isNotEmpty())
+                                enabled = state.image != null && (state.action == "Extract" || state.text.isNotEmpty())
                             ) {
                                 Text("Process Image")
                             }
 
-                            if (state.outputImage != null && state.action == "Encrypt")
+                            if (state.outputImage != null && state.action == "Embed")
                                 Button(
                                     onClick = {
                                         scope.launch {
@@ -107,7 +107,7 @@ fun PvdMethod(
                                     Text("Download Result")
                                 }
                         }
-                        if (state.outputImage != null && state.action == "Encrypt")
+                        if (state.outputImage != null && state.action == "Embed")
                             Box(
                                 Modifier
                                     .size(200.dp)

@@ -5,17 +5,14 @@ import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
+import io.github.vinceglb.filekit.download
 
 actual suspend fun saveFile(file: PlatformImage?): String? {
     try {
-        val filePath = FileKit.openFilePicker(
-            mode = FileKitMode.Single,
-            type = FileKitType.File(listOf("png"))
-        )
+        println(file.toString())
+        FileKit.download(file!!.getBytes(), "pvd_method_image.png")
 
-        file?.save(filePath.toString())
-
-        return filePath.toString()
+        return null
 
     } catch (e: Exception) {
         println("Помилка збереження: ${e.message}")

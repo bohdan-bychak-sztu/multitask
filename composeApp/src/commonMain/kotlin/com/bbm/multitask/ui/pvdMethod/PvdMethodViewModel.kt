@@ -25,7 +25,7 @@ data class PvdMethodState(
     val text: String = "",
     val outputPath: String? = null,
     val outputImage: PlatformImage? = null,
-    val selectedColorChannels: Set<Int> = setOf(1, 2, 3),
+    val selectedColorChannels: Set<Int> = setOf(0, 1, 2),
 
     val p1: String = "",
     val p2: String = "",

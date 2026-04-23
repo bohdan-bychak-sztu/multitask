@@ -22,8 +22,8 @@ import multitask.composeapp.generated.resources.compose_multiplatform
 
 @Composable
 @Preview
-fun App(desktopExtras: @Composable () -> Unit = {}) {
+fun App(lsb: @Composable () -> Unit = {}, rsa: @Composable () -> Unit = {}, md5: @Composable () -> Unit = {}) {
     MaterialTheme {
-        AppNavigation({ desktopExtras() })
+        AppNavigation({ lsb() }, { rsa() }, { md5() })
     }
 }

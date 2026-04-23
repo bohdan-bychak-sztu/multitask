@@ -10,6 +10,7 @@ import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import javax.imageio.ImageIO
+import kotlin.random.Random
 
 interface PlatformImage {
     val width: Int
@@ -36,38 +37,48 @@ fun encodeImage(imagePath: String, message: String, bpc: Int = 1, secretKey: Str
     var bitIndex = 0
     val totalBitsToHide = headerBits.length + dataBits.length
 
-    for (y in 0 until image.height) {
-        for (x in 0 until image.width) {
-            if (bitIndex >= totalBitsToHide) break
+    val totalPixels = image.width * image.height
+    val pixelIndices = IntArray(totalPixels) { it }
 
-            var argb = image.getPixel(x, y)
-            val a = (argb shr 24) and 0xFF
-            val channels = mutableListOf((argb shr 16) and 0xFF, (argb shr 8) and 0xFF, argb and 0xFF)
+    if (secretKey != null) {
+        val seed = secretKey.hashCode().toLong()
+        pixelIndices.shuffle(Random(seed))
+    }
 
-            for (i in channels.indices) {
-                if (bitIndex < totalBitsToHide) {
-                    val currentBpc = if (bitIndex < StegoHeader.SIZE_BITS) 1 else bpc
+    for (index in pixelIndices) {
+        if (bitIndex >= totalBitsToHide) break
 
-                    val remainingInHeader = StegoHeader.SIZE_BITS - bitIndex
-                    val bitsToTake = if (bitIndex < StegoHeader.SIZE_BITS) {
-                        minOf(1, remainingInHeader)
-                    } else {
-                        minOf(bpc, totalBitsToHide - bitIndex)
-                    }
+        val x = index % image.width
+        val y = index / image.width
 
-                    val source = if (bitIndex < StegoHeader.SIZE_BITS) headerBits else dataBits
-                    val offset = if (bitIndex < StegoHeader.SIZE_BITS) bitIndex else bitIndex - StegoHeader.SIZE_BITS
+        var argb = image.getPixel(x, y)
+        val a = (argb shr 24) and 0xFF
+        val channels = mutableListOf((argb shr 16) and 0xFF, (argb shr 8) and 0xFF, argb and 0xFF)
 
-                    val chunk = source.substring(offset, offset + bitsToTake).padEnd(currentBpc, '0')
+        for (i in channels.indices) {
+            if (bitIndex < totalBitsToHide) {
+                val currentBpc = if (bitIndex < StegoHeader.SIZE_BITS) 1 else bpc
 
-                    val mask = (0xFF shl currentBpc) and 0xFF
-                    channels[i] = (channels[i] and mask) or chunk.toInt(2)
-                    bitIndex += bitsToTake
+                val remainingInHeader = StegoHeader.SIZE_BITS - bitIndex
+                val bitsToTake = if (bitIndex < StegoHeader.SIZE_BITS) {
+                    minOf(1, remainingInHeader)
+                } else {
+                    minOf(bpc, totalBitsToHide - bitIndex)
                 }
+
+                val source = if (bitIndex < StegoHeader.SIZE_BITS) headerBits else dataBits
+                val offset = if (bitIndex < StegoHeader.SIZE_BITS) bitIndex else bitIndex - StegoHeader.SIZE_BITS
+
+                val chunk = source.substring(offset, offset + bitsToTake).padEnd(currentBpc, '0')
+
+                val mask = (0xFF shl currentBpc) and 0xFF
+                channels[i] = (channels[i] and mask) or chunk.toInt(2)
+                bitIndex += bitsToTake
             }
-            val newColor = (a shl 24) or (channels[0] shl 16) or (channels[1] shl 8) or channels[2]
-            image.setPixel(x, y, newColor)
         }
+        val newColor = (a shl 24) or (channels[0] shl 16) or (channels[1] shl 8) or channels[2]
+        image.setPixel(x, y, newColor)
+
     }
     return image
 }
@@ -109,40 +120,48 @@ fun decodeImage(imagePath: String, bpc: Int = 1, secretKey: String? = null): Str
     val resultBytes = mutableListOf<Byte>()
     var totalBitsRead = 0
 
-    for (y in 0 until image.height) {
-        for (x in 0 until image.width) {
-            val argb = image.getPixel(x, y)
-            val channels = listOf((argb shr 16) and 0xFF, (argb shr 8) and 0xFF, argb and 0xFF)
+    val totalPixels = image.width * image.height
+    val pixelIndices = IntArray(totalPixels) { it }
 
-            for (colorValue in channels) {
-                if (messageLength == null) {
-                    bitBuffer.append((colorValue and 1).toString())
+    if (secretKey != null) {
+        val seed = secretKey.hashCode().toLong()
+        pixelIndices.shuffle(Random(seed))
+    }
 
-                    if (bitBuffer.length == StegoHeader.SIZE_BITS) {
-                        val magic = bitBuffer.substring(0, 8).toInt(2).toByte()
-                        if (magic != 'S'.code.toByte()) return "Error: No first byte found!"
+    for (index in pixelIndices) {
+        val x = index % image.width
+        val y = index / image.width
+        val argb = image.getPixel(x, y)
+        val channels = listOf((argb shr 16) and 0xFF, (argb shr 8) and 0xFF, argb and 0xFF)
 
-                        messageLength = bitBuffer.substring(12, 44).toInt(2)
-                        bitBuffer.setLength(0)
-                    }
-                } else if (resultBytes.size < messageLength) {
-                    val extracted = (colorValue and ((1 shl bpc) - 1)).toBinaryString(bpc)
-                    bitBuffer.append(extracted)
+        for (colorValue in channels) {
+            if (messageLength == null) {
+                bitBuffer.append((colorValue and 1).toString())
 
-                    while (bitBuffer.length >= 8 && resultBytes.size < messageLength) {
-                        val byteStr = bitBuffer.substring(0, 8)
-                        resultBytes.add(byteStr.toInt(2).toByte())
-                        bitBuffer.delete(0, 8)
-                    }
+                if (bitBuffer.length == StegoHeader.SIZE_BITS) {
+                    val magic = bitBuffer.substring(0, 8).toInt(2).toByte()
+                    if (magic != '/'.code.toByte()) return "Error: No first byte found!"
+
+                    messageLength = bitBuffer.substring(12, 44).toInt(2)
+                    bitBuffer.setLength(0)
                 }
+            } else if (resultBytes.size < messageLength) {
+                val extracted = (colorValue and ((1 shl bpc) - 1)).toBinaryString(bpc)
+                bitBuffer.append(extracted)
 
-                if (messageLength != null && resultBytes.size >= messageLength) {
-                    if (secretKey != null) {
-                        val decrypted = Crypto.decrypt(String(resultBytes.toByteArray(), Charsets.UTF_8), secretKey)
-                        return decrypted
-                    } else
-                        return String(resultBytes.toByteArray(), Charsets.UTF_8)
+                while (bitBuffer.length >= 8 && resultBytes.size < messageLength) {
+                    val byteStr = bitBuffer.substring(0, 8)
+                    resultBytes.add(byteStr.toInt(2).toByte())
+                    bitBuffer.delete(0, 8)
                 }
+            }
+
+            if (messageLength != null && resultBytes.size >= messageLength) {
+                if (secretKey != null) {
+                    val decrypted = Crypto.decrypt(String(resultBytes.toByteArray(), Charsets.UTF_8), secretKey)
+                    return decrypted
+                } else
+                    return String(resultBytes.toByteArray(), Charsets.UTF_8)
             }
         }
     }
@@ -150,7 +169,7 @@ fun decodeImage(imagePath: String, bpc: Int = 1, secretKey: String? = null): Str
 }
 
 data class StegoHeader(
-    val beginning: Byte = 'S'.code.toByte(), // 8 біт
+    val beginning: Byte = '/'.code.toByte(), // 8 біт
     val version: Int = 1,                // 4 біти
     val length: Int                      // 32 біти
 ) {

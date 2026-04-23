@@ -18,10 +18,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.bbm.multitask.ui.pvdMethod.PvdMethod
 import com.bbm.multitask.ui.l3ib.L3ib
 import com.bbm.multitask.ui.lPGraphicalMethod.LPGraphicalMethod
 import com.bbm.multitask.ui.main.MainScreen
+import com.bbm.multitask.ui.pvdMethod.PvdMethod
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -38,6 +38,13 @@ object L3ibMethod
 
 @Serializable
 object PvdMethod
+
+@Serializable
+object RsaAlgo
+
+@Serializable
+object Md5Algo
+
 
 sealed class TopLevelRoute<T : Any>(
     val name: String,
@@ -82,6 +89,22 @@ sealed class TopLevelRoute<T : Any>(
             icon = Icons.Default.HideImage,
             contentDescription = "Метод PVD для приховування даних в зображеннях"
         )
+
+    object RsaAlgoScreen :
+        TopLevelRoute<RsaAlgo>(
+            "RSA Алгоритм",
+            RsaAlgo,
+            icon = Icons.Default.Lock,
+            contentDescription = "Реалізація алгоритму RSA для шифрування та дешифрування повідомлень"
+        )
+
+    object Md5AlgoScreen :
+        TopLevelRoute<Md5Algo>(
+            "MD5 Алгоритм",
+            Md5Algo,
+            icon = Icons.Default.Key,
+            contentDescription = "Реалізація алгоритму MD5 для хешування паролів та аутентифікації користувачів"
+        )
 }
 
 val navItems = listOf(
@@ -89,10 +112,12 @@ val navItems = listOf(
     TopLevelRoute.LsbMethodScreen,
     TopLevelRoute.LPGraphicalMethodScreen,
     TopLevelRoute.L3ibScreen,
+    TopLevelRoute.RsaAlgoScreen,
+    TopLevelRoute.Md5AlgoScreen,
 )
 
 @Composable
-fun AppNavigation(desktopExtras: @Composable () -> Unit = {}) {
+fun AppNavigation(lsb: @Composable () -> Unit = {}, rsa: @Composable () -> Unit = {}, md5: @Composable () -> Unit = {}) {
     val navController = rememberNavController()
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -124,10 +149,12 @@ fun AppNavigation(desktopExtras: @Composable () -> Unit = {}) {
         Box(modifier = Modifier.weight(1f)) {
             NavHost(navController, startDestination = MainScr) {
                 composable<MainScr> { MainScreen(navItems, navController) }
-                composable<LsbMethod> { desktopExtras() }
+                composable<LsbMethod> { lsb() }
                 composable<LPGraphicalMethod> { LPGraphicalMethod() }
                 composable<L3ibMethod> { L3ib() }
                 composable<PvdMethod> { PvdMethod() }
+                composable<RsaAlgo> { rsa() }
+                composable<Md5Algo> { md5() }
             }
         }
     }

@@ -3,7 +3,7 @@ package com.bbm.multitask.utils.platformImage
 import kotlin.math.*
 
 enum class ColorChannel(val shift: Int) {
-    ALPHA(24), RED(16), GREEN(8), BLUE(0)
+    RED(16), GREEN(8), BLUE(0)
 }
 
 class PvdProcessor(val image: PlatformImage) {
@@ -19,7 +19,6 @@ class PvdProcessor(val image: PlatformImage) {
 
         for (y in 0 until image.height) {
             for (x in 0 until image.width - 1 step 2) {
-
                 for (channel in channels) {
                     if (headerCursor >= totalHeaderBits && !dataIterator.hasNext(1)) return
 

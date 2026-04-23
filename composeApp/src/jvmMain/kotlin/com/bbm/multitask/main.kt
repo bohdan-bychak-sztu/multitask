@@ -1,10 +1,10 @@
 package com.bbm.multitask
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Task
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import com.bbm.multitask.ui.lsbMethod.LsbMethod
+import com.bbm.multitask.ui.md5Algo.MD5Algo
+import com.bbm.multitask.ui.rsaAlgo.RsaAlgo
 import java.awt.Dimension
 
 fun main() = application {
@@ -14,8 +14,14 @@ fun main() = application {
     ) {
         window.minimumSize = Dimension(800, 600)
         App(
-            desktopExtras = {
+            lsb = {
                 LsbMethod()
+            },
+            rsa = {
+                RsaAlgo()
+            },
+            md5 = {
+                MD5Algo()
             }
         )
     }

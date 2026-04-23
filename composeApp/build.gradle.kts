@@ -61,7 +61,6 @@ kotlin {
         val webMain by creating {
             dependsOn(commonMain.get())
             dependencies {
-                // НЕ додавайте сюди stdlib-wasm-js!
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
             }
         }
